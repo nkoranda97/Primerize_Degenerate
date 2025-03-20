@@ -15,3 +15,5 @@ primerize.egg-info/
 _static/
 _sources/
 _images/
+
+.history/
