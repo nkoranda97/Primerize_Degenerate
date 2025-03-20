@@ -40,7 +40,7 @@ def complement(sequence):
         ValueError: For illegal **sequence**.
     """
 
-    rc_dict = {"A": "T", "T": "A", "C": "G", "G": "C", "U": "A"}
+    rc_dict = {"A": "T", "T": "A", "C": "G", "G": "C", "U": "A", "N": "N", "K": "M", "M": "K"}
     try:
         sequence = map(lambda x: rc_dict[x], list(sequence))
     except KeyError:
