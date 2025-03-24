@@ -12,14 +12,3 @@ dependencies = [
     "xlwt>=1.3.0",
     "pyside6>=6.8.2.1",
 ]
-
-[project.scripts]
-primerize_degen = "primerize_degen.app:main"
-
-[tool.uv]
-dev-dependencies = [
-    "primerize-degenerate",
-]
-
-[tool.uv.sources]
-primerize-degenerate = { workspace = true }

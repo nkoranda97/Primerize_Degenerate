@@ -3,8 +3,6 @@ README.md
 pyproject.toml
 src/__init__.py
 src/primerize_degen/__init__.py
-src/primerize_degen/__main__.py
-src/primerize_degen/app.py
 src/primerize_degen/misprime.py
 src/primerize_degen/primerize_1d.py
 src/primerize_degen/primerize_2d.py
@@ -19,7 +17,6 @@ src/primerize_degen/wrapper.py
 src/primerize_degenerate.egg-info/PKG-INFO
 src/primerize_degenerate.egg-info/SOURCES.txt
 src/primerize_degenerate.egg-info/dependency_links.txt
-src/primerize_degenerate.egg-info/entry_points.txt
 src/primerize_degenerate.egg-info/requires.txt
 src/primerize_degenerate.egg-info/top_level.txt
 tests/test_primerize_1d.py
