@@ -8,7 +8,6 @@ SEQUENCE: str = """AATTTCAACATGNNKAAGAATGACATGGTGGATCAGATGCAGGAGGACGTGATTTCCATCT
 
 job = worker.design(sequence=SEQUENCE)
 
-with open("test_output/test_2.txt", "w") as f:
-    f.write("name,sequence\n")
-    for i, primer in enumerate(job.primer_set, start=1):
-        f.write(f"Test Primer {i},{primer}\n")
+
+for i, primer in enumerate(job.primer_set, start=1):
+    print(f"Test Primer {i},{primer}\n")
