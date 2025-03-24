@@ -15,11 +15,14 @@ from .wrapper import Design_Single
 try:
     from numba import jit
 except ImportError:
+
     def jit(*args, **kwargs):
         if len(args) == 1 and callable(args[0]):
             return args[0]
+
         def decorator(func):
             return func
+
         return decorator
 
 
@@ -343,16 +346,9 @@ def _dynamic_programming(
         * num_primer_sets_max
     )
 
-    scores_start: np.ndarray = MAX_SCORE * np.ones(
-        (N_BP, N_BP, num_primer_sets_max)
-    )
-    scores_stop: np.ndarray = MAX_SCORE * np.ones(
-        (N_BP, N_BP, num_primer_sets_max)
-    )
-    scores_final: np.ndarray = MAX_SCORE * np.ones(
-        (N_BP, N_BP, num_primer_sets_max)
-    )
-
+    scores_start: np.ndarray = MAX_SCORE * np.ones((N_BP, N_BP, num_primer_sets_max))
+    scores_stop: np.ndarray = MAX_SCORE * np.ones((N_BP, N_BP, num_primer_sets_max))
+    scores_final: np.ndarray = MAX_SCORE * np.ones((N_BP, N_BP, num_primer_sets_max))
 
     # used for backtracking:
     choice_start_p: np.ndarray = np.zeros(
@@ -374,8 +370,10 @@ def _dynamic_programming(
         q_max: int = p
 
         for q in range(q_min, q_max + 1):
-            if (_check_overlap_region(numerical_sequence, q - 1, p) and 
-                Tm_precalculated[q - 1, p - 1] > MIN_TM):
+            if (
+                _check_overlap_region(numerical_sequence, q - 1, p)
+                and Tm_precalculated[q - 1, p - 1] > MIN_TM
+            ):
                 scores_stop[p - 1, q - 1, 0] = (q - 1) + 2 * (p - q + 1)
                 scores_stop[p - 1, q - 1, 0] += misprime_score_weight * (
                     misprime_score_forward[0, p - 1] + misprime_score_reverse[0, q - 1]
@@ -434,8 +432,10 @@ def _dynamic_programming(
                         max_i: int = j
 
                         for i in range(min_i, max_i + 1):
-                            if (_check_overlap_region(numerical_sequence, i - 1, j) and 
-                                Tm_precalculated[i - 1, j - 1] > MIN_TM):
+                            if (
+                                _check_overlap_region(numerical_sequence, i - 1, j)
+                                and Tm_precalculated[i - 1, j - 1] > MIN_TM
+                            ):
                                 potential_score = (
                                     scores_stop[p - 1, q - 1, n - 2]
                                     + (i - p - 1)
@@ -461,8 +461,10 @@ def _dynamic_programming(
                         max_q = p
 
                         for q in range(min_q, max_q + 1):
-                            if (_check_overlap_region(numerical_sequence, q - 1, p) and 
-                                Tm_precalculated[q - 1, p - 1] > MIN_TM):
+                            if (
+                                _check_overlap_region(numerical_sequence, q - 1, p)
+                                and Tm_precalculated[q - 1, p - 1] > MIN_TM
+                            ):
                                 potential_score = (
                                     scores_start[i - 1, j - 1, n - 2]
                                     + (q - j - 1)
