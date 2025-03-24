@@ -5,10 +5,10 @@ import unittest
 
 class TestThermo(unittest.TestCase):
     def setUp(self):
-        self.NN = primerize.thermo.Nearest_Neighbor_Parameter()
+        self.NN = primerize_degen.thermo.Nearest_Neighbor_Parameter()
 
     def test_singleton(self):
-        self.assertEqual(id(self.NN), id(primerize.Nearest_Neighbor))
+        self.assertEqual(id(self.NN), id(primerize_degen.Nearest_Neighbor))
 
     def test_NN(self):
         self.assertEqual(self.NN.T, 273.15 + 37)
@@ -19,14 +19,14 @@ class TestThermo(unittest.TestCase):
 
     def test_calc_Tm(self):
         self.assertEqual(
-            round(primerize.thermo.calc_Tm("ACCAATTATCATCAAGTATT"), 2), 65.49
+            round(primerize_degen.thermo.calc_Tm("ACCAATTATCATCAAGTATT"), 2), 65.49
         )
         self.assertEqual(
-            round(primerize.thermo.calc_Tm("TATATTATTTTTATTTATAT"), 2), 51.80
+            round(primerize_degen.thermo.calc_Tm("TATATTATTTTTATTTATAT"), 2), 51.80
         )
         self.assertEqual(
             round(
-                primerize.thermo.calc_Tm(
+                primerize_degen.thermo.calc_Tm(
                     "CGAGCGGCAGAGAGCGCGGT",
                     DNA_conc=0.2e-6,
                     monovalent_conc=0.1,

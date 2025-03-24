@@ -1,4 +1,4 @@
-from primerize.primerize_1d import Primerize_1D
+from primerize_degen.primerize_1d import Primerize_1D
 
 worker: Primerize_1D = Primerize_1D()
 

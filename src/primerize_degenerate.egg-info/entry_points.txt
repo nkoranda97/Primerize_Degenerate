@@ -1,0 +1,2 @@
+[console_scripts]
+primerize_degen = primerize_degen.app:main

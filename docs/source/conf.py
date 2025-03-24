@@ -4,7 +4,7 @@ import os
 
 sys.path.insert(0, os.path.abspath("../../"))
 
-from primerize import __version__
+from primerize_degen import __version__
 
 extensions = [
     "sphinx.ext.autodoc",

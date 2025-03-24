@@ -5,7 +5,7 @@ import unittest
 
 class TestPrimerizeCustom(unittest.TestCase):
     def test_default_normal(self):
-        mut_list = primerize.Construct_List()
+        mut_list = primerize_degen.Construct_List()
         mut_list.push(["T120C"])
         mut_list.push(["G119A"])
         mut_list.push(["G119A", "T120C"])
@@ -24,7 +24,7 @@ class TestPrimerizeCustom(unittest.TestCase):
         self.assertDictEqual(job_cm._params, OUTPUT["custom"]["normal"]["param"])
 
     def test_default_mismatch(self):
-        mut_list = primerize.Construct_List()
+        mut_list = primerize_degen.Construct_List()
         mut_list.push(["A120C"])
         job_cm = prm_cm.design(
             INPUT["SEQ_P4P6"],
@@ -37,7 +37,7 @@ class TestPrimerizeCustom(unittest.TestCase):
         self.assertFalse(job_cm.is_success)
 
     def test_default_outbound(self):
-        mut_list = primerize.Construct_List()
+        mut_list = primerize_degen.Construct_List()
         mut_list.push(["A12C"])
         mut_list.push(["A11C"])
         mut_list.push(["A10C"])

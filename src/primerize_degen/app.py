@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 from PySide6.QtCore import Qt
-from primerize.primerize_1d import Primerize_1D
+from primerize_degen.primerize_1d import Primerize_1D
 import sys
 
 
