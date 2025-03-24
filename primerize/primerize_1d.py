@@ -1,6 +1,6 @@
 import argparse
 import math
-import numpy
+import numpy as np
 import time
 import traceback
 from typing import List, Dict, Optional, Union, Tuple
@@ -220,6 +220,7 @@ class Primerize_1D(thermo.Singleton):
                 MAX_LENGTH,
                 MIN_TM,
                 N_BP,
+                sequence,
                 misprime_score_forward,
                 misprime_score_reverse,
                 Tm_precalculated,
@@ -303,17 +304,18 @@ def _dynamic_programming(
     MAX_LENGTH: int,
     MIN_TM: float,
     N_BP: int,
-    misprime_score_forward: numpy.ndarray,
-    misprime_score_reverse: numpy.ndarray,
-    Tm_precalculated: numpy.ndarray,
+    sequence: str,
+    misprime_score_forward: np.ndarray,
+    misprime_score_reverse: np.ndarray,
+    Tm_precalculated: np.ndarray,
 ) -> Tuple[
-    numpy.ndarray,
-    numpy.ndarray,
-    numpy.ndarray,
-    numpy.ndarray,
-    numpy.ndarray,
-    numpy.ndarray,
-    numpy.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
     int,
     int,
 ]:
@@ -325,50 +327,51 @@ def _dynamic_programming(
     MAX_SCORE: int = N_BP * 2 + 1
     MAX_SCORE += (
         misprime_score_weight
-        * max(numpy.amax(misprime_score_forward), numpy.amax(misprime_score_reverse))
+        * max(np.amax(misprime_score_forward), np.amax(misprime_score_reverse))
         * 2
         * num_primer_sets_max
     )
 
-    scores_start: numpy.ndarray = MAX_SCORE * numpy.ones(
+    scores_start: np.ndarray = MAX_SCORE * np.ones(
         (N_BP, N_BP, num_primer_sets_max)
     )
-    scores_stop: numpy.ndarray = MAX_SCORE * numpy.ones(
+    scores_stop: np.ndarray = MAX_SCORE * np.ones(
         (N_BP, N_BP, num_primer_sets_max)
     )
-    scores_final: numpy.ndarray = MAX_SCORE * numpy.ones(
+    scores_final: np.ndarray = MAX_SCORE * np.ones(
         (N_BP, N_BP, num_primer_sets_max)
     )
+
 
     # used for backtracking:
-    choice_start_p: numpy.ndarray = numpy.zeros(
-        (N_BP, N_BP, num_primer_sets_max), dtype=numpy.int16
+    choice_start_p: np.ndarray = np.zeros(
+        (N_BP, N_BP, num_primer_sets_max), dtype=np.int16
     )
-    choice_start_q: numpy.ndarray = numpy.zeros(
-        (N_BP, N_BP, num_primer_sets_max), dtype=numpy.int16
+    choice_start_q: np.ndarray = np.zeros(
+        (N_BP, N_BP, num_primer_sets_max), dtype=np.int16
     )
-    choice_stop_i: numpy.ndarray = numpy.zeros(
-        (N_BP, N_BP, num_primer_sets_max), dtype=numpy.int16
+    choice_stop_i: np.ndarray = np.zeros(
+        (N_BP, N_BP, num_primer_sets_max), dtype=np.int16
     )
-    choice_stop_j: numpy.ndarray = numpy.zeros(
-        (N_BP, N_BP, num_primer_sets_max), dtype=numpy.int16
+    choice_stop_j: np.ndarray = np.zeros(
+        (N_BP, N_BP, num_primer_sets_max), dtype=np.int16
     )
 
+    def check_overlap_region(start: int, end: int) -> bool:
+        """Helper function to check if a region contains degenerate nucleotides"""
+        for i in range(start, end):
+            if sequence[i] in ['N', 'K', 'M']:
+                return False
+        return True
+
     # basic setup -- first primer
-    # First set is special.
-    #  |                     p
-    #  ---------------------->
-    #                   ||||||
-    #                   <-----...
-    #                   q
-    #
     for p in range(MIN_LENGTH, MAX_LENGTH + 1):
-        # STOP[reverse](1)
         q_min: int = max(1, p - MAX_LENGTH + 1)
         q_max: int = p
 
         for q in range(q_min, q_max + 1):
-            if Tm_precalculated[q - 1, p - 1] > MIN_TM:
+            # Check overlap region for degenerate nucleotides
+            if check_overlap_region(q - 1, p) and Tm_precalculated[q - 1, p - 1] > MIN_TM:
                 scores_stop[p - 1, q - 1, 0] = (q - 1) + 2 * (p - q + 1)
                 scores_stop[p - 1, q - 1, 0] += misprime_score_weight * (
                     misprime_score_forward[0, p - 1] + misprime_score_reverse[0, q - 1]
@@ -377,21 +380,12 @@ def _dynamic_programming(
     best_min_score: int = MAX_SCORE
     n: int = 1
     while n <= num_primer_sets_max:
-        # final scoring -- let's see if we can 'close' at the end of the sequence.
-        #
-        #                 p
-        #  --------------->
-        #            ||||||
-        #            <---------------------
-        #            q                    N_BP
-        #
+        # final scoring
         for p in range(1, N_BP + 1):
             q_min: int = max(1, p - MAX_LENGTH + 1)
             q_max: int = p
 
-            # STOP[reverse]
             for q in range(q_min, q_max + 1):
-                # previous primer ends had overlap with good Tm and were scored
                 if scores_stop[p - 1, q - 1, n - 1] < MAX_SCORE:
                     i: int = N_BP + 1
                     j: int = N_BP
@@ -408,7 +402,7 @@ def _dynamic_programming(
                             + misprime_score_reverse[0, q - 1]
                         )
 
-        min_score: numpy.ndarray = numpy.amin(scores_final[:, :, n - 1])
+        min_score: np.ndarray = np.amin(scores_final[:, :, n - 1])
         if min_score < best_min_score or n == 1:
             best_min_score = min_score
             best_n = n
@@ -421,34 +415,24 @@ def _dynamic_programming(
         # considering another primer set
         n += 1
 
-        #
-        #        p              i
-        #  ------>              ------ ... ->
-        #    |||||              ||||||
-        #    <------------------------
-        #    q                       j
-        #
+        # Check overlaps for internal primers
         for p in range(1, N_BP + 1):
-            # STOP[forward](1)
             q_min: int = max(1, p - MAX_LENGTH + 1)
             q_max: int = p
 
-            # STOP[reverse](1)
             for q in range(q_min, q_max + 1):
-                # previous primer ends had overlap with good Tm and were scored
                 if scores_stop[p - 1, q - 1, n - 2] < MAX_SCORE:
-                    # START[reverse](1)
                     min_j: int = max(p + 1, q + MIN_LENGTH - 1)
                     max_j: int = min(N_BP, q + MAX_LENGTH - 1)
 
                     for j in range(min_j, max_j + 1):
-                        # start[reverse](2)
                         min_i: int = max(p + 1, j - MAX_LENGTH + 1)
                         max_i: int = j
 
                         for i in range(min_i, max_i + 1):
-                            # at some PCR starge thiw will be an endpoint!
-                            if Tm_precalculated[i - 1, j - 1] > MIN_TM:
+                            # Check both overlap regions for degenerate nucleotides
+                            if (check_overlap_region(i - 1, j) and 
+                                Tm_precalculated[i - 1, j - 1] > MIN_TM):
                                 potential_score = (
                                     scores_stop[p - 1, q - 1, n - 2]
                                     + (i - p - 1)
@@ -459,34 +443,23 @@ def _dynamic_programming(
                                     choice_start_p[i - 1, j - 1, n - 2] = p - 1
                                     choice_start_q[i - 1, j - 1, n - 2] = q - 1
 
-        #
-        #             i                     p
-        #             ---------------------->
-        #             ||||||           ||||||
-        #  <----------------           <----- ...
-        #                  j           q
-        #
-
-        # START[reverse](1)
+        # Check final set of overlaps
         for j in range(1, N_BP + 1):
-            # START[reverse](2)
             min_i: int = max(1, j - MAX_LENGTH + 1)
             max_i: int = j
 
             for i in range(min_i, max_i + 1):
-                # could also just make this 1:N_BP, but that would wast a little time.
                 if scores_start[i - 1, j - 1, n - 2] < MAX_SCORE:
-                    # STOP[reverse](1)
                     min_p = max(j + 1, i + MIN_LENGTH - 1)
                     max_p = min(N_BP, i + MAX_LENGTH - 1)
 
                     for p in range(min_p, max_p + 1):
-                        # STOP[reverse](2)
                         min_q = max(j + 1, p - MAX_LENGTH + 1)
                         max_q = p
 
                         for q in range(min_q, max_q + 1):
-                            if Tm_precalculated[q - 1, p - 1] > MIN_TM:
+                            if (check_overlap_region(q - 1, p) and 
+                                Tm_precalculated[q - 1, p - 1] > MIN_TM):
                                 potential_score = (
                                     scores_start[i - 1, j - 1, n - 2]
                                     + (q - j - 1)
@@ -534,16 +507,16 @@ def _back_tracking(
     best_match_reverse,
     WARN_CUTOFF,
 ):
-    y = numpy.amin(scores_final[:, :, N_primers - 1], axis=0)
-    idx = numpy.argmin(scores_final[:, :, N_primers - 1], axis=0)
-    min_scroe = numpy.amin(y)
-    q = numpy.argmin(y)
+    y: np.array = np.amin(scores_final[:, :, N_primers - 1], axis=0)
+    idx = np.argmin(scores_final[:, :, N_primers - 1], axis=0)
+    min_scroe = np.amin(y)
+    q = np.argmin(y)
     p = idx[q]
 
     is_success = True
     primer_set = []
     misprime_warn = []
-    primers = numpy.zeros((3, 2 * N_primers))
+    primers = np.zeros((3, 2 * N_primers))
     if min_scroe == MAX_SCORE:
         is_success = False
     else:
