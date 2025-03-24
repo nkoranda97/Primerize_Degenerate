@@ -12,14 +12,15 @@ from . import util_class
 from .wrapper import Design_Single
 
 
-def jit(nopython=True, nogil=True, cache=False):
-    def empty_wrapper(func):
-        def func_wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return func_wrapper
-
-    return empty_wrapper
+try:
+    from numba import jit
+except ImportError:
+    def jit(*args, **kwargs):
+        if len(args) == 1 and callable(args[0]):
+            return args[0]
+        def decorator(func):
+            return func
+        return decorator
 
 
 class Primerize_1D(thermo.Singleton):
@@ -173,6 +174,7 @@ class Primerize_1D(thermo.Singleton):
 
         name: str = prefix
         sequence: str = util.RNA2DNA(sequence)
+        numerical_sequence = thermo._convert_sequence(sequence)
         N_BP: int = len(sequence)
         params: Dict[str, Optional[Union[int, float, str]]] = {
             "MIN_TM": MIN_TM,
@@ -220,7 +222,7 @@ class Primerize_1D(thermo.Singleton):
                 MAX_LENGTH,
                 MIN_TM,
                 N_BP,
-                sequence,
+                numerical_sequence,
                 misprime_score_forward,
                 misprime_score_reverse,
                 Tm_precalculated,
@@ -298,13 +300,22 @@ class Primerize_1D(thermo.Singleton):
 
 
 @jit(nopython=True, nogil=True, cache=False)
+def _check_overlap_region(sequence: np.ndarray, start: int, end: int) -> bool:
+    """Helper function to check if a region contains degenerate nucleotides"""
+    for i in range(start, end):
+        if sequence[0, i] >= 4:  # N=4, K=5, M=6
+            return False
+    return True
+
+
+@jit(nopython=True, nogil=True, cache=False)
 def _dynamic_programming(
     NUM_PRIMERS: int,
     MIN_LENGTH: int,
     MAX_LENGTH: int,
     MIN_TM: float,
     N_BP: int,
-    sequence: str,
+    numerical_sequence: np.ndarray,
     misprime_score_forward: np.ndarray,
     misprime_score_reverse: np.ndarray,
     Tm_precalculated: np.ndarray,
@@ -357,21 +368,14 @@ def _dynamic_programming(
         (N_BP, N_BP, num_primer_sets_max), dtype=np.int16
     )
 
-    def check_overlap_region(start: int, end: int) -> bool:
-        """Helper function to check if a region contains degenerate nucleotides"""
-        for i in range(start, end):
-            if sequence[i] in ['N', 'K', 'M']:
-                return False
-        return True
-
     # basic setup -- first primer
     for p in range(MIN_LENGTH, MAX_LENGTH + 1):
         q_min: int = max(1, p - MAX_LENGTH + 1)
         q_max: int = p
 
         for q in range(q_min, q_max + 1):
-            # Check overlap region for degenerate nucleotides
-            if check_overlap_region(q - 1, p) and Tm_precalculated[q - 1, p - 1] > MIN_TM:
+            if (_check_overlap_region(numerical_sequence, q - 1, p) and 
+                Tm_precalculated[q - 1, p - 1] > MIN_TM):
                 scores_stop[p - 1, q - 1, 0] = (q - 1) + 2 * (p - q + 1)
                 scores_stop[p - 1, q - 1, 0] += misprime_score_weight * (
                     misprime_score_forward[0, p - 1] + misprime_score_reverse[0, q - 1]
@@ -430,8 +434,7 @@ def _dynamic_programming(
                         max_i: int = j
 
                         for i in range(min_i, max_i + 1):
-                            # Check both overlap regions for degenerate nucleotides
-                            if (check_overlap_region(i - 1, j) and 
+                            if (_check_overlap_region(numerical_sequence, i - 1, j) and 
                                 Tm_precalculated[i - 1, j - 1] > MIN_TM):
                                 potential_score = (
                                     scores_stop[p - 1, q - 1, n - 2]
@@ -458,7 +461,7 @@ def _dynamic_programming(
                         max_q = p
 
                         for q in range(min_q, max_q + 1):
-                            if (check_overlap_region(q - 1, p) and 
+                            if (_check_overlap_region(numerical_sequence, q - 1, p) and 
                                 Tm_precalculated[q - 1, p - 1] > MIN_TM):
                                 potential_score = (
                                     scores_start[i - 1, j - 1, n - 2]
